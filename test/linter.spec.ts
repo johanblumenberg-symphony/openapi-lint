@@ -31,40 +31,233 @@ function responseContent(content: ApiItem) {
     });
 }
 
-describe('Linter', () => {
-    describe('allof-only-ref', () => {
-        let linter: Linter;
+function component(content: ApiItem) {
+    return spec({
+        paths: {
+            '/test': { }
+        },
+        components: {
+            schemas: content
+        }
+    });
+}
 
-        beforeEach(() => {
-            linter = new Linter({});
+describe('Linter', () => {
+    let linter: Linter;
+
+    beforeEach(() => {
+        linter = new Linter({});
+    });
+
+    describe('require-description', () => {
+        it('should reject component without description', () => {
+            let input = component({
+                MyComponent: {
+                    type: 'object',
+                }
+            });
+            expect(() => linter.lint(input)).toThrow(/Missing description in components.schemas.MyComponent/);
         });
 
-        it('should accept an allOf declaration that has only ref elements', () => {
-            let input = spec(responseContent({
-                'application/json': {
-                    schema: {
-                        allOf: [
-                            { '$ref': 'ref1' },
-                            { '$ref': 'ref2' },
-                        ]
-                    }
+        it('should accept component with description', () => {
+            let input = component({
+                MyComponent: {
+                    description: 'abc',
+                    type: 'object',
                 }
-            }));
+            });
+            expect(() => linter.lint(input)).not.toThrow();
+        });
+    });
+
+    describe('allof', () => {
+        it('should reject allOf with extra properties in ref item', () => {
+            let input = component({
+                Other: {
+                    description: 'abc',
+                    properties: {}
+                },
+                MyComponent: {
+                    description: 'abc',
+                    allOf: [
+                        {
+                            $ref: '#/components/schemas/Other',
+                            properties: {}
+                        }
+                    ]
+                }
+            });
+            expect(() => linter.lint(input)).toThrow(/\$ref objects can only have a single \$ref property in components.schemas.MyComponent/);
+        });
+
+        it('should reject allOf with multiple property items', () => {
+            let input = component({
+                Other: {
+                    description: 'abc',
+                    properties: {}
+                },
+                MyComponent: {
+                    description: 'abc',
+                    allOf: [
+                        {
+                            properties: {}
+                        },
+                        {
+                            properties: {}
+                        }
+                    ]
+                }
+            });
+            expect(() => linter.lint(input)).toThrow(/Too many non-\$ref objects in allOf in components.schemas.MyComponent/);
+        });
+
+        it('should reject component with allOf and properties', () => {
+            let input = component({
+                Other: {
+                    description: 'abc',
+                    properties: {}
+                },
+                MyComponent: {
+                    description: 'abc',
+                    allOf: [
+                        {
+                            properties: {}
+                        }
+                    ],
+                    properties: {}
+                }
+            });
+            expect(() => linter.lint(input)).toThrow(/Extra property properties in components.schemas.MyComponent/);
+        });
+    });
+
+    describe('inherit-required', () => {
+        it('should reject component with an optional property that overrides a required property', () => {
+            let input = component({
+                Other: {
+                    description: 'abc',
+                    required: [
+                        'code'
+                    ],
+                    properties: {
+                        code: {
+                            type: 'string'
+                        }
+                    }
+                },
+                MyComponent: {
+                    description: 'abc',
+                    allOf: [
+                        {
+                            $ref: '#/components/schemas/Other',
+                        },
+                        {
+                            properties: {
+                                code: {
+                                    type: 'string'
+                                }
+                            }
+                        }
+                    ]
+                }
+            });
+            expect(() => linter.lint(input)).toThrow(/Property code of components.schemas.MyComponent must be required/);
+        });
+
+        it('should accept component with an optional property that overrides an optional property', () => {
+            let input = component({
+                Other: {
+                    description: 'abc',
+                    properties: {
+                        code: {
+                            type: 'string'
+                        }
+                    }
+                },
+                MyComponent: {
+                    description: 'abc',
+                    allOf: [
+                        {
+                            $ref: '#/components/schemas/Other',
+                        },
+                        {
+                            properties: {
+                                code: {
+                                    type: 'string'
+                                }
+                            }
+                        }
+                    ]
+                }
+            });
             expect(() => linter.lint(input)).not.toThrow();
         });
 
-        it('should fail if an allOf declaration has something else but a ref', () => {
-            let input = spec(responseContent({
-                'application/json': {
-                    schema: {
-                        allOf: [
-                            { '$ref': 'ref' },
-                            { description: 'abc' }
-                        ]
+        it('should accept component with a required property that overrides a required property', () => {
+            let input = component({
+                Other: {
+                    description: 'abc',
+                    required: [
+                        'code'
+                    ],
+                    properties: {
+                        code: {
+                            type: 'string'
+                        }
                     }
+                },
+                MyComponent: {
+                    description: 'abc',
+                    allOf: [
+                        {
+                            $ref: '#/components/schemas/Other',
+                        },
+                        {
+                            required: [
+                                'code'
+                            ],
+                            properties: {
+                                code: {
+                                    type: 'string'
+                                }
+                            }
+                        }
+                    ]
                 }
-            }));
-            expect(() => linter.lint(input)).toThrow(/allOf: should only contain \$ref elements/);
+            });
+            expect(() => linter.lint(input)).not.toThrow();
+        });
+
+        it('should accept component with a required property that overrides an optional property', () => {
+            let input = component({
+                Other: {
+                    description: 'abc',
+                    properties: {
+                        code: {
+                            type: 'string'
+                        }
+                    }
+                },
+                MyComponent: {
+                    description: 'abc',
+                    allOf: [
+                        {
+                            $ref: '#/components/schemas/Other',
+                        },
+                        {
+                            required: [
+                                'code'
+                            ],
+                            properties: {
+                                code: {
+                                    type: 'string'
+                                }
+                            }
+                        }
+                    ]
+                }
+            });
+            expect(() => linter.lint(input)).not.toThrow();
         });
     });
 });
