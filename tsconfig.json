@@ -1,0 +1,20 @@
+{
+  "compilerOptions": {
+    "declaration": true,
+    "declarationMap": true,
+    "sourceMap": true,
+
+    "module": "commonjs",
+    "moduleResolution": "node",
+    "target": "es5",
+    "lib": ["es5", "es6", "es7", "dom"],
+    "downlevelIteration": true,
+    "strict": true,
+
+    "outDir": "./dist/",
+    "rootDir": "src"
+  },
+  "include": [
+    "./src/**/*"
+  ]
+}
