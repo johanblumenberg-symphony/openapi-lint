@@ -4,7 +4,7 @@ import {
     ApiSpec,
     getAllObjectProperties,
     hasProperty,
-    getProperty
+    getProperty, ApiItem
 } from '../Rule';
 
 export default class NoNestedTypeWithoutRef implements Rule {
@@ -19,13 +19,13 @@ export default class NoNestedTypeWithoutRef implements Rule {
                     if (hasProperty(object, 'type')) {
                         const type = getProperty(object, 'type');
                         if (type === 'array' && hasProperty(object, 'items')) {
-                            const itemType = Object.keys(getProperty(object, 'items') as any)[0];
-                            if (itemType === 'object') {
-                                throw new ValidationError(`Invalid nested type ${name} found in ${path}`);
+                            const items = getProperty(object, 'items');
+                            if (items && getProperty(items, 'type') === 'object') {
+                                throw new ValidationError(`Nested type ${name} found in ${path}`);
                             }
                         }
                         if (type === 'object') {
-                            throw new ValidationError(`Invalid nested type ${name} found in ${path}`);
+                            throw new ValidationError(`Nested type ${name} found in ${path}`);
                         }
                     }
                 });

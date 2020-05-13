@@ -11,7 +11,7 @@ function spec(obj: { [ key: string ]: ApiItem }): ApiSpec {
         },
 
         ...obj,
-    }
+    };
 }
 
 function responseContent(content: ApiItem) {
@@ -47,6 +47,130 @@ describe('Linter', () => {
 
     beforeEach(() => {
         linter = new Linter({});
+    });
+
+    describe('no-nested-type_without-ref', () => {
+        it('should throw error when encountering nested type that is not a primitive or reference type', () => {
+            let input = component({
+                MyComponent: {
+                    description: 'abc',
+                    properties: {
+                        prop1: {
+                            type: 'object'
+                        }
+                    }
+                }
+            });
+            expect(() => linter.lint(input)).toThrow(/Nested type prop1 found in properties.prop1/);
+        });
+
+        it('should not throw error when a nested type is string', () => {
+            let input = component({
+                MyComponent: {
+                    description: 'abc',
+                    properties: {
+                        prop1: {
+                            type: 'string'
+                        }
+                    }
+                }
+            });
+            expect(() => linter.lint(input)).not.toThrow();
+        });
+
+        it('should not throw error when a nested type is boolean', () => {
+            let input = component({
+                MyComponent: {
+                    description: 'abc',
+                    properties: {
+                        prop1: {
+                            type: 'boolean'
+                        }
+                    }
+                }
+            });
+            expect(() => linter.lint(input)).not.toThrow();
+        });
+
+        it('should not throw error when a nested type is integer', () => {
+            let input = component({
+                MyComponent: {
+                    description: 'abc',
+                    properties: {
+                        prop1: {
+                            type: 'integer'
+                        }
+                    }
+                }
+            });
+            expect(() => linter.lint(input)).not.toThrow();
+        });
+
+        it('should not throw error when a nested type is a reference type', () => {
+            let input = component({
+                MyComponent: {
+                    description: 'abc',
+                    properties: {
+                        prop1: {
+                            $ref: 'some ref'
+                        }
+                    }
+                }
+            });
+            expect(() => linter.lint(input)).not.toThrow();
+        });
+
+        it('should throw error when a nested type is an array and its item is object', () => {
+            let input = component({
+                MyComponent: {
+                    description: 'abc',
+                    properties: {
+                        prop1: {
+                            description: 'cde',
+                            type: 'array',
+                            items: {
+                                type: 'object'
+                            }
+                        }
+                    }
+                }
+            });
+            expect(() => linter.lint(input)).toThrow(/Nested type prop1 found in properties.prop1/);
+        });
+
+        it('should not throw error when a nested type is an array and its item type is a primitive', () => {
+            let input = component({
+                MyComponent: {
+                    description: 'abc',
+                    properties: {
+                        prop1: {
+                            type: 'array',
+                            items: {
+                                type: 'string'
+                            }
+                        }
+                    }
+                }
+            });
+            expect(() => linter.lint(input)).not.toThrow();
+        });
+
+        it('should not throw error when a nested type is an array and its item has a reference type', () => {
+            let input = component({
+                MyComponent: {
+                    description: 'abc',
+                    properties: {
+                        prop1: {
+                            type: 'array',
+                            items: {
+                                $ref: 'some ref'
+                            }
+                        }
+                    }
+                }
+            });
+            expect(() => linter.lint(input)).not.toThrow();
+        });
     });
 
     describe('require-description', () => {
