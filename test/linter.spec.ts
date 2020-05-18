@@ -14,18 +14,38 @@ function spec(obj: { [ key: string ]: ApiItem }): ApiSpec {
     };
 }
 
-function responseContent(content: ApiItem) {
+function endpoint(verb: string, content: ApiItem) {
     return spec({
         paths: {
             '/test': {
-                get: {
-                    responses: {
-                        '200': {
-                            description: 'abc',
-                            content
-                        }
-                    }
-                }
+                [verb]: content
+            }
+        },
+        components: {
+            schemas: { }
+        }
+    });
+}
+
+function requestContent(verb: string, content: ApiItem) {
+    return endpoint(verb, {
+        requestBody: {
+            content: content
+        },
+        responses: {
+            '200': {
+                description: 'abc'
+            }
+        }
+    });
+}
+
+function responseContent(content: ApiItem) {
+    return endpoint('get', {
+        responses: {
+            '200': {
+                description: 'abc',
+                content
             }
         }
     });
@@ -379,6 +399,95 @@ describe('Linter', () => {
                             }
                         }
                     ]
+                }
+            });
+            expect(() => linter.lint(input)).not.toThrow();
+        });
+    });
+
+    describe('no-inline-polymorphic-request-bodies', () => {
+        it('should reject post with inline polymorphic request body', () => {
+            let input = requestContent('post', {
+                'application/json': {
+                    schema: {
+                        oneOf: [
+                            {
+                                '$ref': '#/components/schemas/BodyA'
+                            },
+                            {
+                                '$ref': '#/components/schemas/BodyB'
+                            }
+                        ]
+                    }
+                }
+            });
+            expect(() => linter.lint(input)).toThrow(/Inline polymorphic body in 'paths.\/test' post. These must be defined as named types./);
+        });
+
+        it('should reject put with inline polymorphic request body', () => {
+            let input = requestContent('put', {
+                'application/json': {
+                    schema: {
+                        oneOf: [
+                            {
+                                '$ref': '#/components/schemas/BodyA'
+                            },
+                            {
+                                '$ref': '#/components/schemas/BodyB'
+                            }
+                        ]
+                    }
+                }
+            });
+            expect(() => linter.lint(input)).toThrow(/Inline polymorphic body in 'paths.\/test' put. These must be defined as named types./);
+        });
+
+        it('should reject patch with inline polymorphic request body', () => {
+            let input = requestContent('patch', {
+                'application/json': {
+                    schema: {
+                        oneOf: [
+                            {
+                                '$ref': '#/components/schemas/BodyA'
+                            },
+                            {
+                                '$ref': '#/components/schemas/BodyB'
+                            }
+                        ]
+                    }
+                }
+            });
+            expect(() => linter.lint(input)).toThrow(/Inline polymorphic body in 'paths.\/test' patch. These must be defined as named types./);
+        });
+
+        it('should accept post with reference to request body', () => {
+            let input = requestContent('post', {
+                'application/json': {
+                    schema: {
+                        '$ref': '#/components/schemas/RequestBody'
+                    }
+                }
+            });
+            expect(() => linter.lint(input)).not.toThrow();
+        });
+
+        it('should accept put with reference to request body', () => {
+            let input = requestContent('put', {
+                'application/json': {
+                    schema: {
+                        '$ref': '#/components/schemas/RequestBody'
+                    }
+                }
+            });
+            expect(() => linter.lint(input)).not.toThrow();
+        });
+
+        it('should accept patch with reference to request body', () => {
+            let input = requestContent('patch', {
+                'application/json': {
+                    schema: {
+                        '$ref': '#/components/schemas/RequestBody'
+                    }
                 }
             });
             expect(() => linter.lint(input)).not.toThrow();
