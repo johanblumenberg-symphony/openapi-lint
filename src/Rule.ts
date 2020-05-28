@@ -73,11 +73,11 @@ export function isArray(json: ApiItem): json is ApiItem[] {
 }
 
 export function hasProperty(json: ApiItem, prop: string): boolean {
-    return isObject(json) && json[prop] !== undefined;
+    return isObject(json) && getItem(json, prop) !== undefined;
 }
 
 export function getProperty(json: ApiItem, prop: string): ApiItem | undefined {
-    return isObject(json) ? json[prop] : undefined;
+    return isObject(json) ? getItem(json, prop) : undefined;
 }
 
 export function isRequired(json: ApiItem, prop: string): boolean {
