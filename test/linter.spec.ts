@@ -493,4 +493,34 @@ describe('Linter', () => {
             expect(() => linter.lint(input)).not.toThrow();
         });
     });
+
+    describe('required', () => {
+        it('should reject component with a required property that is not listed in properteis', () => {
+            let input = component({
+                MyComponent: {
+                    description: 'abc',
+                    type: 'object',
+                    required: ['name'],
+                    properties: { }
+                }
+            });
+            expect(() => linter.lint(input)).toThrow(/Missing required property name in components.schemas.MyComponent/);
+        });
+
+        it('should accept component with a required property that exists in properties', () => {
+            let input = component({
+                MyComponent: {
+                    description: 'abc',
+                    type: 'object',
+                    required: ['name'],
+                    properties: {
+                        name: {
+                            type: 'string'
+                        }
+                    }
+                }
+            });
+            expect(() => linter.lint(input)).not.toThrow();
+        });
+    });
 });
